@@ -6,6 +6,7 @@
 #include <map>
 #include <algorithm>
 #include <cmath>
+#include <set>
 
 using namespace std;
 
@@ -179,7 +180,6 @@ public:
             for (const auto& film : films) {
                 if (film.genre != genre) continue;
 
-                // skip already watched
                 if (find(user->watched.begin(), user->watched.end(), film.name) != user->watched.end())
                     continue;
 
@@ -195,13 +195,73 @@ public:
                 return a.first.imdb > b.first.imdb;
             return a.first.name < b.first.name;
         });
-        for (int i = 0 ;i<(int)result.size();i++){
-            cout << result[i].first.name << " " << result[i].second<<endl;
-        }
+
         for (int i = 0; i < min(3, (int)result.size()); ++i) {
             cout << i + 1 << ". " << result[i].first.name
                  << ": " << result[i].first.director
-                 << " (" << result[i].first.imdb << ")"<<endl;
+                 << " (" << result[i].first.imdb << ")" << endl;
+        }
+    }
+
+    void castRecommendation(const string& username, const string& castName) {
+        vector<Film> candidates;
+
+        set<string> watched;
+        string fav_genre;
+
+        if (!username.empty()) {
+            User* user = findUser(username);
+            if (!user) {
+                cout << "User not found.\n";
+                return;
+            }
+
+            for (const auto& f : user->watched)
+                watched.insert(f);
+
+            map<string, int> genre_count;
+            for (const auto& f : user->watched) {
+                Film* film = findFilm(f);
+                if (film)
+                    genre_count[film->genre]++;
+            }
+
+            int maxCount = 0;
+            for (const auto& [g, count] : genre_count)
+                if (count > maxCount) {
+                    fav_genre = g;
+                    maxCount = count;
+                }
+
+            for (const auto& film : films) {
+                if (film.genre == fav_genre &&
+                    film.cast == castName &&
+                    watched.find(film.name) == watched.end()) {
+                    candidates.push_back(film);
+                }
+            }
+
+        } else {
+            for (const auto& film : films) {
+                if (film.cast == castName)
+                    candidates.push_back(film);
+            }
+        }
+
+        sort(candidates.begin(), candidates.end(), [](const Film& a, const Film& b) {
+            if (fabs(a.imdb - b.imdb) > 1e-6)
+                return a.imdb > b.imdb;
+            return a.name < b.name;
+        });
+
+        if (candidates.empty()) {
+            cout << "No suitable movies were found.\n";
+        } else {
+            for (int i = 0; i < min(2, (int)candidates.size()); ++i) {
+                cout << i + 1 << ". " << candidates[i].name
+                     << ": " << candidates[i].director
+                     << " (" << candidates[i].imdb << ")" << endl;
+            }
         }
     }
 };
@@ -226,14 +286,14 @@ int main(int argc, char* argv[]) {
         getline(cin, input);
         if (input == "exit") break;
 
+        vector<size_t> quotes;
+        for (size_t i = 0; i < input.size(); ++i)
+            if (input[i] == '"') quotes.push_back(i);
+        cout << input.substr(0, 19) <<endl;
         if (input.substr(0, 20) == "genre_recommendation") {
-            vector<size_t> quotes;
-            for (size_t i = 0; i < input.size(); ++i) {
-                if (input[i] == '"') quotes.push_back(i);
-            }
             if (quotes.size() == 2) {
                 string genre = input.substr(quotes[0] + 1, quotes[1] - quotes[0] - 1);
-                recommender.genreRecommendation("", genre); // user = ""
+                recommender.genreRecommendation("", genre);
             } else if (quotes.size() == 4) {
                 string user = input.substr(quotes[0] + 1, quotes[1] - quotes[0] - 1);
                 string genre = input.substr(quotes[2] + 1, quotes[3] - quotes[2] - 1);
@@ -241,9 +301,21 @@ int main(int argc, char* argv[]) {
             } else {
                 cout << "Invalid command format.\n";
             }
-        }else {
+        } else if (input.substr(0, 19) == "cast_recommandation") {
+            if (quotes.size() == 2) {
+                string cast = input.substr(quotes[0] + 1, quotes[1] - quotes[0] - 1);
+                recommender.castRecommendation("", cast);
+            } else if (quotes.size() == 4) {
+                string user = input.substr(quotes[0] + 1, quotes[1] - quotes[0] - 1);
+                string cast = input.substr(quotes[2] + 1, quotes[3] - quotes[2] - 1);
+                recommender.castRecommendation(user, cast);
+            } else {
+                cout << "Invalid command format.\n";
+            }
+        } else {
             cout << "Commands:\n";
             cout << "genre_recommendation \"<Username>\" \"<Genre>\"\n";
+            cout << "cast_recommandation \"<Username>\" \"<Cast>\"\n";
             cout << "exit\n";
         }
     }

@@ -63,7 +63,7 @@ public:
         if (!file.is_open()) return false;
 
         string line;
-        getline(file, line); // skip header
+        getline(file, line);
 
         while (getline(file, line)) {
             stringstream ss(line);
@@ -88,7 +88,7 @@ public:
         if (!file.is_open()) return false;
 
         string line;
-        getline(file, line); // skip header
+        getline(file, line); 
 
         while (getline(file, line)) {
             stringstream ss(line);
@@ -313,6 +313,7 @@ public:
             }
         }
     }
+    
 };
 
 int main(int argc, char* argv[]) {
@@ -328,7 +329,6 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    cout << "\n=== ChiBebinam Movie Recommender ===\n";
     string input;
     while (true) {
         cout << "\nCommand: ";
@@ -362,10 +362,7 @@ int main(int argc, char* argv[]) {
                 cout << "Invalid command format.\n";
             }
         } else {
-            cout << "Commands:\n";
-            cout << "genre_recommendation \"<Username>\" \"<Genre>\"\n";
-            cout << "cast_recommandation \"<Username>\" \"<Cast>\"\n";
-            cout << "exit\n";
+            cout << "Invalid command format.\n";
         }
     }
 

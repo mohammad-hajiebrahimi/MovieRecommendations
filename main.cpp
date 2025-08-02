@@ -161,47 +161,76 @@ public:
     }
 
     void genreRecommendation(const string& username, const string& genre) {
-        vector<pair<Film, double>> result;
+        vector<pair<Film, double>> recommendedFilms;
 
         if (username.empty()) {
-            for (const auto& film : films) {
-                if (film.genre == genre) {
-                    double score = calculateScoreForNewUser(film);
-                    result.push_back({film, score});
+            for (int i = 0; i < films.size(); i++) {
+                if (films[i].genre == genre) {
+                    double score = calculateScoreForNewUser(films[i]);
+                    recommendedFilms.push_back(make_pair(films[i], score));
                 }
             }
         } else {
             User* user = findUser(username);
-            if (!user) {
+            if (user == nullptr) {
                 cout << "User not found." << endl;
                 return;
             }
 
-            for (const auto& film : films) {
-                if (film.genre != genre) continue;
-
-                if (find(user->watched.begin(), user->watched.end(), film.name) != user->watched.end())
+            for (int i = 0; i < films.size(); i++) {
+                if (films[i].genre != genre)
                     continue;
 
-                double score = calculateScoreForExistingUser(film, *user);
-                result.push_back({film, score});
+                bool hasWatched = false;
+                for (int j = 0; j < user->watched.size(); j++) {
+                    if (user->watched[j] == films[i].name) {
+                        hasWatched = true;
+                        break;
+                    }
+                }
+
+                if (hasWatched)
+                    continue;
+
+                double score = calculateScoreForExistingUser(films[i], *user);
+                recommendedFilms.push_back(make_pair(films[i], score));
             }
         }
 
-        sort(result.begin(), result.end(), [](const pair<Film, double>& a, const pair<Film, double>& b) {
-            if (fabs(a.second - b.second) > 1e-6)
-                return a.second > b.second;
-            if (fabs(a.first.imdb - b.first.imdb) > 1e-6)
-                return a.first.imdb > b.first.imdb;
-            return a.first.name < b.first.name;
-        });
+        for (int i = 0; i < recommendedFilms.size(); i++) {
+            for (int j = i + 1; j < recommendedFilms.size(); j++) {
+                bool shouldSwap = false;
 
-        for (int i = 0; i < min(3, (int)result.size()); ++i) {
-            cout << i + 1 << ". " << result[i].first.name
-                 << ": " << result[i].first.director
-                 << " (" << result[i].first.imdb << ")" << endl;
+                if (recommendedFilms[i].second < recommendedFilms[j].second) {
+                    shouldSwap = true;
+                } else if (recommendedFilms[i].second == recommendedFilms[j].second) {
+                    if (recommendedFilms[i].first.imdb < recommendedFilms[j].first.imdb) {
+                        shouldSwap = true;
+                    } else if (recommendedFilms[i].first.imdb == recommendedFilms[j].first.imdb) {
+                        if (recommendedFilms[i].first.name > recommendedFilms[j].first.name) {
+                            shouldSwap = true;
+                        }
+                    }
+                }
+
+                if (shouldSwap) {
+                    pair<Film, double> temp = recommendedFilms[i];
+                    recommendedFilms[i] = recommendedFilms[j];
+                    recommendedFilms[j] = temp;
+                }
+            }
+        }
+
+        int count = recommendedFilms.size();
+        if (count > 3) count = 3;
+
+        for (int i = 0; i < count; i++) {
+            cout << (i + 1) << ". " << recommendedFilms[i].first.name
+                << ": " << recommendedFilms[i].first.director
+                << " (" << recommendedFilms[i].first.imdb << ")" << endl;
         }
     }
+
 
     void castRecommendation(const string& username, const string& castName) {
         vector<Film> candidates;

@@ -234,62 +234,82 @@ public:
 
     void castRecommendation(const string& username, const string& castName) {
         vector<Film> candidates;
-
+        string fav_genre = "";
         set<string> watched;
-        string fav_genre;
 
         if (!username.empty()) {
             User* user = findUser(username);
-            if (!user) {
-                cout << "User not found.\n";
+            if (user == nullptr) {
+                cout << "User not found." << endl;
                 return;
             }
 
-            for (const auto& f : user->watched)
-                watched.insert(f);
+            for (int i = 0; i < user->watched.size(); i++) {
+                watched.insert(user->watched[i]);
+            }
 
             map<string, int> genre_count;
-            for (const auto& f : user->watched) {
-                Film* film = findFilm(f);
-                if (film)
+            for (int i = 0; i < user->watched.size(); i++) {
+                Film* film = findFilm(user->watched[i]);
+                if (film != nullptr) {
                     genre_count[film->genre]++;
+                }
             }
 
             int maxCount = 0;
-            for (const auto& [g, count] : genre_count)
-                if (count > maxCount) {
-                    fav_genre = g;
-                    maxCount = count;
+            for (map<string, int>::iterator it = genre_count.begin(); it != genre_count.end(); ++it) {
+                if (it->second > maxCount) {
+                    maxCount = it->second;
+                    fav_genre = it->first;
                 }
+            }
 
-            for (const auto& film : films) {
-                if (film.genre == fav_genre &&
-                    film.cast == castName &&
-                    watched.find(film.name) == watched.end()) {
-                    candidates.push_back(film);
+            for (int i = 0; i < films.size(); i++) {
+                if (films[i].genre == fav_genre &&
+                    films[i].cast == castName &&
+                    watched.find(films[i].name) == watched.end()) {
+                    candidates.push_back(films[i]);
                 }
             }
 
         } else {
-            for (const auto& film : films) {
-                if (film.cast == castName)
-                    candidates.push_back(film);
+            for (int i = 0; i < films.size(); i++) {
+                if (films[i].cast == castName) {
+                    candidates.push_back(films[i]);
+                }
             }
         }
 
-        sort(candidates.begin(), candidates.end(), [](const Film& a, const Film& b) {
-            if (fabs(a.imdb - b.imdb) > 1e-6)
-                return a.imdb > b.imdb;
-            return a.name < b.name;
-        });
+        for (int i = 0; i < candidates.size(); i++) {
+            for (int j = i + 1; j < candidates.size(); j++) {
+                bool shouldSwap = false;
 
-        if (candidates.empty()) {
-            cout << "No suitable movies were found.\n";
+                if (candidates[i].imdb < candidates[j].imdb) {
+                    shouldSwap = true;
+                } else if (candidates[i].imdb == candidates[j].imdb) {
+                    if (candidates[i].name > candidates[j].name) {
+                        shouldSwap = true;
+                    }
+                }
+
+                if (shouldSwap) {
+                    Film temp = candidates[i];
+                    candidates[i] = candidates[j];
+                    candidates[j] = temp;
+                }
+            }
+        }
+
+        if (candidates.size() == 0) {
+            cout << "No suitable movies were found." << endl;
         } else {
-            for (int i = 0; i < min(2, (int)candidates.size()); ++i) {
+            int limit = candidates.size();
+            if (limit > 2) limit = 2;
+
+            for (int i = 0; i < limit; i++) {
                 cout << i + 1 << ". " << candidates[i].name
-                     << ": " << candidates[i].director
-                     << " (" << candidates[i].imdb << ")" << endl;
+                    << ": " << candidates[i].director
+                    << " (" << candidates[i].imdb << ")" << endl;
             }
         }
     }
